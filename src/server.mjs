@@ -76,6 +76,10 @@ function responderErrorAPI(error, res, operacion = '') {
 
 
 // Mostramos el listado de equipos
+app.get('/', (req, res)=>{
+    res.redirect('/equipos'); // Te lleva directamente a equipo cuando arrancas el server
+})
+
 app.get('/equipos', async (req, res) => {
     try {
         // Leemos y normalizamos los filtros
