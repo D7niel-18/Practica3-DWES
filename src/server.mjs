@@ -12,13 +12,12 @@ import {
     obtenerHistorialEquipo,
     crearEquipo,
     actualizarEquipo,
-    eliminarEquipo
+    eliminarEquipo,
+    crearPrestamo,
+    devolverPrestamo
 } from './equipos.repo.mjs';
 
-import {
-    validarEquipo,
-    validarId
-} from './equipos.validacion.mjs';
+import { validarEquipo, validarId } from './equipos.validacion.mjs';
 
 // Creamos la aplicacion de Express
 const app = express();
@@ -36,28 +35,44 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 // Gestionamos los errores de PostgreSQL en un unico sitio
+
 function responderErrorAPI(error, res, operacion = '') {
     console.error('Error en la API:', error.message);
 
-    // Codigo duplicado
+    // Errores controlados de la aplicación
+    if (error.status) {
+        return res.status(error.status).json({
+            error: error.message
+        });
+    }
+
+    // Código repetido o colisión con el índice único
     if (error.code === '23505') {
         return res.status(409).json({
-            error: 'Ya existe un equipo con ese codigo'
+            error: 'Ya existe un equipo o préstamo con esos datos'
         });
     }
 
-    // No se puede eliminar un equipo con prestamos
-    if (error.code === '23503' && operacion === 'eliminar') {
-        return res.status(409).json({
-            error: 'No se puede eliminar un equipo que tiene prestamos'
-        });
+    // Violación de clave foránea
+    if (error.code === '23503') {
+        if (operacion === 'eliminar') {
+            return res.status(409).json({
+                error: 'No se puede eliminar un equipo que tiene préstamos'
+            });
+        }
+
+        if (operacion === 'prestar') {
+            return res.status(400).json({
+                error: 'El usuario indicado no existe'
+            });
+        }
     }
 
-    // Cualquier otro error
     return res.status(500).json({
         error: 'Error interno del servidor'
     });
 }
+
 
 
 // Mostramos el listado de equipos
@@ -268,6 +283,49 @@ app.delete('/api/equipos/:id', async (req, res) => {
         return responderErrorAPI(error, res, 'eliminar');
     }
 });
+
+// Ruta para crear un préstamo
+app.post('/api/prestamos', async (req, res) => {
+    const { equipoId, usuarioId } = req.body;
+
+    // Validamos los identificadores
+    if (!validarId(String(equipoId)) || !validarId(String(usuarioId))) {
+        return res.status(400).json({
+            error: 'Los identificadores del equipo y del usuario no son válidos'
+        });
+    }
+
+    try {
+        const prestamo = await crearPrestamo(equipoId, usuarioId);
+
+        return res.status(201).json(prestamo);
+
+    } catch (error) {
+        return responderErrorAPI(error, res, 'prestar');
+    }
+});
+
+// Ruta para registrar una devolución
+app.post('/api/prestamos/:id/devolucion', async (req, res) => {
+    const id = req.params.id;
+
+    if (!validarId(id)) {
+        return res.status(400).json({
+            error: 'El identificador del préstamo no es válido'
+        });
+    }
+
+    try {
+        const prestamo = await devolverPrestamo(id);
+
+        return res.status(200).json(prestamo);
+
+    } catch (error) {
+        return responderErrorAPI(error, res);
+    }
+});
+
+
 
 // Gestionamos los errores de las peticiones
 app.use((error, req, res, next) => {

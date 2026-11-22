@@ -192,3 +192,121 @@ export async function eliminarEquipo(id) {
 
     return resultado.rowCount;
 }
+
+// Función para crear un préstamo
+export async function crearPrestamo(equipoId, usuarioId) {
+    const client = await pool.connect();
+
+    try {
+        await client.query('BEGIN');
+
+        // Marcamos el equipo como no disponible si sigue libre
+        const resultadoEquipo = await client.query(
+            `UPDATE practica_prestamos.equipos
+             SET disponible = false
+             WHERE id = $1 AND disponible = true`,
+            [equipoId]
+        );
+
+        if (resultadoEquipo.rowCount === 0) {
+            // Comprobamos si el equipo existe
+            const comprobacion = await client.query(
+                `SELECT id
+                 FROM practica_prestamos.equipos
+                 WHERE id = $1`,
+                [equipoId]
+            );
+
+            if (comprobacion.rowCount === 0) {
+                const error = new Error('El equipo no existe');
+                error.status = 404;
+                throw error;
+            }
+
+            const error = new Error('El equipo no está disponible');
+            error.status = 409;
+            throw error;
+        }
+
+        // Creamos el préstamo
+        const resultadoPrestamo = await client.query(
+            `INSERT INTO practica_prestamos.prestamos
+                (equipo_id, usuario_id)
+             VALUES ($1, $2)
+             RETURNING id, equipo_id, usuario_id,
+                       fecha_prestamo, fecha_devolucion`,
+            [equipoId, usuarioId]
+        );
+
+        await client.query('COMMIT');
+
+        return resultadoPrestamo.rows[0];
+
+    } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+
+    } finally {
+        client.release();
+    }
+}
+
+// Función para registrar una devolución
+export async function devolverPrestamo(id) {
+    const client = await pool.connect();
+
+    try {
+        await client.query('BEGIN');
+
+        // Registramos la devolución si todavía está activo
+        const resultadoPrestamo = await client.query(
+            `UPDATE practica_prestamos.prestamos
+             SET fecha_devolucion = CURRENT_TIMESTAMP
+             WHERE id = $1 AND fecha_devolucion IS NULL
+             RETURNING id, equipo_id, usuario_id,
+                       fecha_prestamo, fecha_devolucion`,
+            [id]
+        );
+
+        if (resultadoPrestamo.rowCount === 0) {
+            // Comprobamos si el préstamo existe
+            const comprobacion = await client.query(
+                `SELECT id
+                 FROM practica_prestamos.prestamos
+                 WHERE id = $1`,
+                [id]
+            );
+
+            if (comprobacion.rowCount === 0) {
+                const error = new Error('El préstamo no existe');
+                error.status = 404;
+                throw error;
+            }
+
+            const error = new Error('El préstamo ya está devuelto');
+            error.status = 409;
+            throw error;
+        }
+
+        const prestamo = resultadoPrestamo.rows[0];
+
+        // Volvemos a poner el equipo como disponible
+        await client.query(
+            `UPDATE practica_prestamos.equipos
+             SET disponible = true
+             WHERE id = $1`,
+            [prestamo.equipo_id]
+        );
+
+        await client.query('COMMIT');
+
+        return prestamo;
+
+    } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+
+    } finally {
+        client.release();
+    }
+}
