@@ -1,0 +1,33 @@
+
+services:
+  postgres:
+    # Imagen oficial de PostgreSQL versión 18
+    image: postgres:18
+
+    # Nombre que tendrá el contenedor
+    container_name: practica_prestamos_db
+
+    # Reinicia el contenedor si se detiene inesperadamente
+    restart: unless-stopped
+
+    # Variables de entorno obtenidas del archivo .env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
+    # Puerto del ordenador:puerto del contenedor
+    ports:
+      - "${POSTGRES_PORT}:5432"
+
+    # Volúmenes para guardar los datos y ejecutar el SQL inicial
+    volumes:
+      # Conserva los datos aunque se detenga el contenedor
+      - postgres_data:/var/lib/postgresql
+
+      # Ejecuta init.sql al inicializar la base de datos
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+# Volumen persistente de PostgreSQL
+volumes:
+  postgres_data:
