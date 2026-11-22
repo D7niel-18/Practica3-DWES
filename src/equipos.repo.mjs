@@ -137,3 +137,58 @@ export async function obtenerHistorialEquipo(id) {
 
     return resultado.rows;
 }
+
+// Creamos un equipo nuevo
+export async function crearEquipo(equipo) {
+    const consulta = `
+        INSERT INTO practica_prestamos.equipos
+            (codigo, nombre, categoria)
+        VALUES ($1, $2, $3)
+        RETURNING id, codigo, nombre, categoria, disponible
+    `;
+
+    const valores = [
+        equipo.codigo,
+        equipo.nombre,
+        equipo.categoria
+    ];
+
+    const resultado = await pool.query(consulta, valores);
+
+    return resultado.rows[0];
+}
+
+// Actualizamos los datos de un equipo
+export async function actualizarEquipo(id, equipo) {
+    const consulta = `
+        UPDATE practica_prestamos.equipos
+        SET codigo = $1,
+            nombre = $2,
+            categoria = $3
+        WHERE id = $4
+        RETURNING id, codigo, nombre, categoria, disponible
+    `;
+
+    const valores = [
+        equipo.codigo,
+        equipo.nombre,
+        equipo.categoria,
+        id
+    ];
+
+    const resultado = await pool.query(consulta, valores);
+
+    return resultado;
+}
+
+// Eliminamos un equipo
+export async function eliminarEquipo(id) {
+    const consulta = `
+        DELETE FROM practica_prestamos.equipos
+        WHERE id = $1
+    `;
+
+    const resultado = await pool.query(consulta, [id]);
+
+    return resultado.rowCount;
+}

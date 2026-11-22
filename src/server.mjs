@@ -3,15 +3,22 @@ import 'dotenv/config';
 import express from 'express';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-
 import pool from './db.mjs';
 
 import {
     obtenerEquipos,
     obtenerCategorias,
     obtenerEquipoPorId,
-    obtenerHistorialEquipo
+    obtenerHistorialEquipo,
+    crearEquipo,
+    actualizarEquipo,
+    eliminarEquipo
 } from './equipos.repo.mjs';
+
+import {
+    validarEquipo,
+    validarId
+} from './equipos.validacion.mjs';
 
 // Creamos la aplicacion de Express
 const app = express();
@@ -27,6 +34,31 @@ app.use(express.static(path.join(__dirname, '../public')));
 // Permitimos recibir datos JSON y formularios
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Gestionamos los errores de PostgreSQL en un unico sitio
+function responderErrorAPI(error, res, operacion = '') {
+    console.error('Error en la API:', error.message);
+
+    // Codigo duplicado
+    if (error.code === '23505') {
+        return res.status(409).json({
+            error: 'Ya existe un equipo con ese codigo'
+        });
+    }
+
+    // No se puede eliminar un equipo con prestamos
+    if (error.code === '23503' && operacion === 'eliminar') {
+        return res.status(409).json({
+            error: 'No se puede eliminar un equipo que tiene prestamos'
+        });
+    }
+
+    // Cualquier otro error
+    return res.status(500).json({
+        error: 'Error interno del servidor'
+    });
+}
+
 
 // Mostramos el listado de equipos
 app.get('/equipos', async (req, res) => {
@@ -142,6 +174,116 @@ app.get('/equipos/:id', async (req, res) => {
         console.error('Error al obtener el equipo:', error.message);
         res.status(500).send('Error al consultar el equipo');
     }
+});
+
+// Creamos un equipo
+app.post('/api/equipos', async (req, res) => {
+    // Validamos los datos recibidos
+    const validacion = validarEquipo(req.body);
+
+    if (validacion.error) {
+        return res.status(400).json({
+            error: validacion.error
+        });
+    }
+
+    try {
+        const equipo = await crearEquipo(validacion.datos);
+
+        // Indicamos la ruta del equipo creado
+        res.location(`/api/equipos/${equipo.id}`);
+
+        return res.status(201).json(equipo);
+
+    } catch (error) {
+        return responderErrorAPI(error, res);
+    }
+});
+
+// Actualizamos un equipo
+app.put('/api/equipos/:id', async (req, res) => {
+    const id = req.params.id;
+
+    // Validamos el identificador
+    if (!validarId(id)) {
+        return res.status(400).json({
+            error: 'El identificador no es valido'
+        });
+    }
+
+    // Validamos los datos recibidos
+    const validacion = validarEquipo(req.body);
+
+    if (validacion.error) {
+        return res.status(400).json({
+            error: validacion.error
+        });
+    }
+
+    try {
+        const resultado = await actualizarEquipo(
+            id,
+            validacion.datos
+        );
+
+        // Comprobamos si existe el equipo
+        if (resultado.rowCount === 0) {
+            return res.status(404).json({
+                error: 'El equipo no existe'
+            });
+        }
+
+        return res.status(200).json(resultado.rows[0]);
+
+    } catch (error) {
+        return responderErrorAPI(error, res);
+    }
+});
+
+// Eliminamos un equipo
+app.delete('/api/equipos/:id', async (req, res) => {
+    const id = req.params.id;
+
+    // Validamos el identificador
+    if (!validarId(id)) {
+        return res.status(400).json({
+            error: 'El identificador no es valido'
+        });
+    }
+
+    try {
+        const filasEliminadas = await eliminarEquipo(id);
+
+        // Comprobamos si existe el equipo
+        if (filasEliminadas === 0) {
+            return res.status(404).json({
+                error: 'El equipo no existe'
+            });
+        }
+
+        // Respondemos sin contenido
+        return res.status(204).end();
+
+    } catch (error) {
+        return responderErrorAPI(error, res, 'eliminar');
+    }
+});
+
+// Gestionamos los errores de las peticiones
+app.use((error, req, res, next) => {
+    // JSON mal formado
+    if (error.type === 'entity.parse.failed') {
+        return res.status(400).json({
+            error: 'El JSON enviado no es valido'
+        });
+    }
+
+    // Otros errores
+    console.error('Error del servidor:', error.message);
+
+    return res.status(500).json({
+        error: 'Error interno del servidor'
+    });
 });
 
 // Puerto del servidor
