@@ -1,6 +1,7 @@
-# Gestión de préstamos de equipos
+# Práctica DWEC – Gestión de catálogo, carrito y pedidos
 
-Aplicación web para gestionar un inventario de equipos informáticos y controlar sus préstamos y devoluciones. Desarrollada con Node.js, Express y PostgreSQL.
+**Autor:** [Daniel Jimenez Ramirez]
+**IA:** [[Claude: Practica DWES](https://claude.ai/share/5b549b4e-c49a-4b6a-9daa-cf3542e809f3)]
 
 ## 1. Requisitos
 
