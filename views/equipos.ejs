@@ -1,0 +1,137 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Listado de equipos</title>
+</head>
+<body>
+
+    <header>
+        <h1>Gestión de equipos</h1>
+    </header>
+
+    <main>
+        <section>
+            <h2>Buscar equipos</h2>
+
+            <form action="/equipos" method="GET">
+
+                <label for="busqueda">Nombre:</label>
+                <input
+                    type="text"
+                    id="busqueda"
+                    name="busqueda"
+                    value="<%= busqueda %>"
+                >
+
+                <label for="categoria">Categoría:</label>
+                <select id="categoria" name="categoria">
+                    <option value="">Todas</option>
+
+                    <% categorias.forEach(cat => { %>
+                        <option
+                            value="<%= cat.categoria %>"
+                            <%= categoria === cat.categoria ? 'selected' : '' %>
+                        >
+                            <%= cat.categoria %>
+                        </option>
+                    <% }) %>
+                </select>
+
+                <label for="disponible">Disponibilidad:</label>
+                <select id="disponible" name="disponible">
+                    <option value="">Todos</option>
+                    <option value="true" <%= disponible === 'true' ? 'selected' : '' %>>
+                        Disponible
+                    </option>
+                    <option value="false" <%= disponible === 'false' ? 'selected' : '' %>>
+                        Prestado
+                    </option>
+                </select>
+
+                <label for="orden">Ordenar por:</label>
+                <select id="orden" name="orden">
+                    <option value="codigo" <%= orden === 'codigo' ? 'selected' : '' %>>
+                        Código
+                    </option>
+                    <option value="nombre" <%= orden === 'nombre' ? 'selected' : '' %>>
+                        Nombre
+                    </option>
+                </select>
+
+                <button type="submit">Buscar</button>
+
+                <a href="/equipos">Limpiar filtros</a>
+
+            </form>
+        </section>
+
+        <section>
+            <h2>Equipos</h2>
+
+            <% if (equipos.length === 0) { %>
+
+                <p>No se han encontrado equipos.</p>
+
+            <% } else { %>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Código</th>
+                            <th>Nombre</th>
+                            <th>Categoría</th>
+                            <th>Estado</th>
+                            <th>Detalle</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        <% equipos.forEach(equipo => { %>
+                            <tr>
+                                <td><%= equipo.codigo %></td>
+                                <td><%= equipo.nombre %></td>
+                                <td><%= equipo.categoria %></td>
+
+                                <td>
+                                    <%= equipo.disponible ? 'Disponible' : 'Prestado' %>
+                                </td>
+
+                                <td>
+                                    <a href="/equipos/<%= equipo.id %>">
+                                        Ver detalle
+                                    </a>
+                                </td>
+                            </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
+
+            <% } %>
+        </section>
+
+        <nav aria-label="Paginación">
+
+            <% if (pagina > 1) { %>
+                <a href="/equipos?page=<%= pagina - 1 %>&<%= filtrosQuery %>">
+                    Anterior
+                </a>
+            <% } %>
+
+            <span>
+                Página <%= pagina %> de <%= totalPaginas %>
+            </span>
+
+            <% if (pagina < totalPaginas) { %>
+                <a href="/equipos?page=<%= pagina + 1 %>&<%= filtrosQuery %>">
+                    Siguiente
+                </a>
+            <% } %>
+
+        </nav>
+    </main>
+
+</body>
+</html>

@@ -1,0 +1,112 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalle del equipo</title>
+</head>
+<body>
+
+    <header>
+        <h1>Detalle del equipo</h1>
+    </header>
+
+    <main>
+
+        <section>
+            <h2>Información del equipo</h2>
+
+            <p>
+                <strong>Código:</strong>
+                <%= equipo.codigo %>
+            </p>
+
+            <p>
+                <strong>Nombre:</strong>
+                <%= equipo.nombre %>
+            </p>
+
+            <p>
+                <strong>Categoría:</strong>
+                <%= equipo.categoria %>
+            </p>
+
+            <p>
+                <strong>Estado:</strong>
+                <%= equipo.disponible ? 'Disponible' : 'Prestado' %>
+            </p>
+        </section>
+
+        <section>
+            <h2>Préstamo actual</h2>
+
+            <% if (equipo.prestamo_id) { %>
+
+                <p>
+                    <strong>Usuario:</strong>
+                    <%= equipo.usuario_actual %>
+                </p>
+
+                <p>
+                    <strong>Fecha del préstamo:</strong>
+                    <%= new Date(equipo.fecha_prestamo).toLocaleString('es-ES') %>
+                </p>
+
+            <% } else { %>
+
+                <p>Este equipo no tiene ningún préstamo activo.</p>
+
+            <% } %>
+        </section>
+
+        <section>
+            <h2>Historial de préstamos</h2>
+
+            <% if (historial.length === 0) { %>
+
+                <p>Este equipo todavía no tiene historial de préstamos.</p>
+
+            <% } else { %>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Usuario</th>
+                            <th>Fecha del préstamo</th>
+                            <th>Fecha de devolución</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        <% historial.forEach(prestamo => { %>
+                            <tr>
+                                <td><%= prestamo.usuario %></td>
+
+                                <td>
+                                    <%= new Date(prestamo.fecha_prestamo).toLocaleString('es-ES') %>
+                                </td>
+
+                                <td>
+                                    <% if (prestamo.fecha_devolucion) { %>
+                                        <%= new Date(prestamo.fecha_devolucion).toLocaleString('es-ES') %>
+                                    <% } else { %>
+                                        Sin devolver
+                                    <% } %>
+                                </td>
+                            </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
+
+            <% } %>
+        </section>
+
+        <p>
+            <a href="/equipos">Volver al listado</a>
+        </p>
+
+    </main>
+
+</body>
+</html>
