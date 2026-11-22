@@ -22,6 +22,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // Configuramos EJS
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, '../views'));
+app.use(express.static(path.join(__dirname, '../public')));
 
 // Permitimos recibir datos JSON y formularios
 app.use(express.json());
